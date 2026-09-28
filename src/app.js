@@ -24,14 +24,32 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 export function createApp() {
   const app = express()
 
-  const origins = (process.env.CORS_ORIGINS || '')
+  const envOrigins = (process.env.CORS_ORIGINS || '')
     .split(',')
     .map((s) => s.trim())
     .filter(Boolean)
 
+  const defaultOrigins = [
+    'http://localhost:5173',
+    'http://127.0.0.1:5173',
+    'https://melathalam-matrimony.netlify.app',
+    'https://roaring-cajeta-114fd4.netlify.app',
+  ]
+
+  const allowed = new Set([...defaultOrigins, ...envOrigins])
+
   app.use(
     cors({
-      origin: origins.length ? origins : true,
+      origin(origin, callback) {
+        // Same-origin / server-to-server / curl (no Origin header)
+        if (!origin) return callback(null, true)
+        if (allowed.has(origin)) return callback(null, true)
+        // Any Netlify preview / production subdomain for this project family
+        if (/^https:\/\/[a-z0-9-]+\.netlify\.app$/i.test(origin)) {
+          return callback(null, true)
+        }
+        return callback(null, false)
+      },
       credentials: true,
     }),
   )
