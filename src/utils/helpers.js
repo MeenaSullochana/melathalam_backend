@@ -4,12 +4,40 @@ import multer from 'multer'
 import { fileURLToPath } from 'url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
-const PROJECT_ROOT = path.resolve(__dirname, '../../..')
+/** backend/ package root (works on Render when only backend is deployed) */
+export const BACKEND_ROOT = path.resolve(__dirname, '../..')
+/** Monorepo root (local: matrimony/). May not exist on Render. */
+export const MONOREPO_ROOT = path.resolve(BACKEND_ROOT, '..')
 
 export function resolveUploadDir(subdir = 'my_photos') {
-  const dest = path.join(PROJECT_ROOT, subdir)
+  const envDir = process.env.UPLOAD_DIR?.trim()
+  let dest
+  if (envDir && path.isAbsolute(envDir)) {
+    dest = envDir
+  } else if (envDir) {
+    // Relative UPLOAD_DIR is resolved from backend root (Render-safe)
+    dest = path.resolve(BACKEND_ROOT, envDir)
+  } else if (subdir === 'my_photos' || subdir === 'documents' || subdir === 'img') {
+    dest = path.join(BACKEND_ROOT, subdir)
+  } else {
+    dest = path.join(BACKEND_ROOT, subdir)
+  }
   fs.mkdirSync(dest, { recursive: true })
   return dest
+}
+
+/** Prefer backend-local folder; fall back to monorepo sibling folders used in local PHP layout. */
+export function resolveStaticDirs(...relativeCandidates) {
+  const dirs = []
+  for (const rel of relativeCandidates) {
+    const abs = path.resolve(BACKEND_ROOT, rel)
+    if (fs.existsSync(abs) && !dirs.includes(abs)) dirs.push(abs)
+  }
+  for (const rel of relativeCandidates) {
+    const abs = path.resolve(MONOREPO_ROOT, rel.replace(/^\.\.\//, ''))
+    if (fs.existsSync(abs) && !dirs.includes(abs)) dirs.push(abs)
+  }
+  return dirs
 }
 
 export function createUploader(subdir = 'my_photos') {

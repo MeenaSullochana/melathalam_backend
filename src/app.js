@@ -17,6 +17,7 @@ import auth from './routes/auth.js'
 import member from './routes/member.js'
 import publicRoutes from './routes/public.js'
 import payments from './routes/payments.js'
+import { resolveUploadDir, resolveStaticDirs } from './utils/helpers.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -57,14 +58,24 @@ export function createApp() {
   app.use(express.urlencoded({ extended: true }))
 
   const backendRoot = path.resolve(__dirname, '..')
-  const uploadDir = path.resolve(backendRoot, process.env.UPLOAD_DIR || '../my_photos')
-  app.use('/uploads', express.static(uploadDir))
-  app.use('/my_photos', express.static(uploadDir))
-  app.use('/documents', express.static(path.resolve(backendRoot, '../documents')))
-  app.use('/img', express.static(path.resolve(backendRoot, '../img')))
-  app.use('/img/qr', express.static(path.resolve(backendRoot, '../img/qr')))
-  app.use('/SuccessStory', express.static(path.resolve(backendRoot, '../SuccessStory')))
-  app.use('/horoscope-list', express.static(path.resolve(backendRoot, '../horoscope-list')))
+  const uploadDir = resolveUploadDir(process.env.UPLOAD_DIR || 'my_photos')
+  for (const dir of [uploadDir, ...resolveStaticDirs('my_photos', '../my_photos')]) {
+    app.use('/uploads', express.static(dir))
+    app.use('/my_photos', express.static(dir))
+  }
+  for (const dir of resolveStaticDirs('documents', '../documents')) {
+    app.use('/documents', express.static(dir))
+  }
+  for (const dir of resolveStaticDirs('img', '../img')) {
+    app.use('/img', express.static(dir))
+    app.use('/img/qr', express.static(path.join(dir, 'qr')))
+  }
+  for (const dir of resolveStaticDirs('SuccessStory', '../SuccessStory')) {
+    app.use('/SuccessStory', express.static(dir))
+  }
+  for (const dir of resolveStaticDirs('horoscope-list', '../horoscope-list')) {
+    app.use('/horoscope-list', express.static(dir))
+  }
 
   app.get('/api/health', (_req, res) => {
     res.json({

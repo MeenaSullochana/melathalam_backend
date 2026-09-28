@@ -1,0 +1,9 @@
+node_modules/
+.env
+uploads/
+my_photos/
+documents/
+horoscope-list/
+SuccessStory/
+*.log
+.DS_Store
