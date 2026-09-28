@@ -1,6 +1,6 @@
 import { Router } from 'express'
 import {
-  SiteConfig, Plan, SuccessStory, CmsPage, Master, Member, FirstForm,
+  SiteConfig, Plan, SuccessStory, Service, CmsPage, Master, Member, FirstForm,
 } from '../models/index.js'
 
 const router = Router()
@@ -33,6 +33,15 @@ router.get('/plans', async (_req, res) => {
 router.get('/success-stories', async (_req, res) => {
   const stories = await SuccessStory.find({ status: 'APPROVED' }).sort({ story_id: -1 }).limit(50).lean()
   res.json({ success: true, stories })
+})
+
+router.get('/services', async (_req, res) => {
+  const services = await Service.find({
+    $or: [{ status: 'APPROVED' }, { status: /^\s*APPROVED\s*$/i }, { status: { $exists: false } }],
+  })
+    .sort({ sort_order: 1, service_id: 1 })
+    .lean()
+  res.json({ success: true, services })
 })
 
 router.get('/cms/:pageName', async (req, res) => {

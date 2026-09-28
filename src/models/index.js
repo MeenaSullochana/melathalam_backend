@@ -123,6 +123,18 @@ const successStorySchema = new mongoose.Schema(
   { strict: false },
 )
 
+const serviceSchema = new mongoose.Schema(
+  {
+    service_id: Number,
+    title: String,
+    text: String,
+    image: String,
+    sort_order: { type: Number, default: 0 },
+    status: { type: String, default: 'APPROVED' },
+  },
+  { strict: false },
+)
+
 const advertisementSchema = new mongoose.Schema(
   {
     adv_id: Number,
@@ -203,6 +215,7 @@ export const SiteConfig = mongoose.models.SiteConfig || mongoose.model('SiteConf
 export const Master = mongoose.models.Master || mongoose.model('Master', masterSchema)
 export const CmsPage = mongoose.models.CmsPage || mongoose.model('CmsPage', cmsPageSchema)
 export const SuccessStory = mongoose.models.SuccessStory || mongoose.model('SuccessStory', successStorySchema)
+export const Service = mongoose.models.Service || mongoose.model('Service', serviceSchema)
 export const Advertisement = mongoose.models.Advertisement || mongoose.model('Advertisement', advertisementSchema)
 export const Payment = mongoose.models.Payment || mongoose.model('Payment', paymentSchema)
 export const Message = mongoose.models.Message || mongoose.model('Message', messageSchema)

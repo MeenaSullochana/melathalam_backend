@@ -1,7 +1,7 @@
 import dotenv from 'dotenv'
 import { connectDb } from '../src/config/db.js'
 import {
-  AdminUser, Plan, SiteConfig, Master, Member, CmsPage, SuccessStory,
+  AdminUser, Plan, SiteConfig, Master, Member, CmsPage, SuccessStory, Service,
 } from '../src/models/index.js'
 import { md5 } from '../src/utils/md5.js'
 
@@ -126,6 +126,53 @@ async function seed() {
       status: 'APPROVED',
       fstatus: '1',
     })
+  }
+
+  const serviceCount = await Service.countDocuments()
+  if (serviceCount === 0) {
+    await Service.insertMany([
+      {
+        service_id: 1,
+        title: 'Free Registration',
+        text: 'Create your profile at no cost and start your search for the right life partner.',
+        image: '',
+        sort_order: 1,
+        status: 'APPROVED',
+      },
+      {
+        service_id: 2,
+        title: 'Match for All Communities & Religion',
+        text: 'Find compatible matches across every community and faith with inclusive, preference-based search.',
+        image: '',
+        sort_order: 2,
+        status: 'APPROVED',
+      },
+      {
+        service_id: 3,
+        title: 'Remarriage',
+        text: 'Thoughtful matchmaking for those seeking a second chance at companionship and happiness.',
+        image: '',
+        sort_order: 3,
+        status: 'APPROVED',
+      },
+      {
+        service_id: 4,
+        title: 'Inter Caste',
+        text: 'Connect with partners across castes when families are open to progressive, respectful matches.',
+        image: '',
+        sort_order: 4,
+        status: 'APPROVED',
+      },
+      {
+        service_id: 5,
+        title: 'VIP Customer Match Making',
+        text: 'Priority personalised assistance and curated profiles for members who want dedicated support.',
+        image: '',
+        sort_order: 5,
+        status: 'APPROVED',
+      },
+    ])
+    console.log('Seeded default services')
   }
 
   console.log('Seed complete.')

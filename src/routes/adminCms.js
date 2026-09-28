@@ -1,11 +1,25 @@
 import { Router } from 'express'
 import {
-  CmsPage, Advertisement, SuccessStory, EmailTemplate, FirstForm, Interest, Message, Member,
+  CmsPage, Advertisement, SuccessStory, Service, EmailTemplate, FirstForm, Interest, Message, Member,
 } from '../models/index.js'
 import { requireAdmin } from '../middleware/auth.js'
+import { createUploader } from '../utils/helpers.js'
 
 const router = Router()
 router.use(requireAdmin)
+
+const serviceUpload = createUploader('img')
+const storyUpload = createUploader('SuccessStory')
+
+function optionalFile(upload, field) {
+  return (req, res, next) => {
+    const ct = String(req.headers['content-type'] || '')
+    if (ct.includes('multipart/form-data')) {
+      return upload.single(field)(req, res, next)
+    }
+    next()
+  }
+}
 
 router.get('/pages', async (_req, res) => {
   const pages = await CmsPage.find().sort({ cms_id: -1 }).lean()
@@ -103,16 +117,123 @@ router.get('/success-stories', async (_req, res) => {
   res.json({ success: true, stories })
 })
 
-router.post('/success-stories', async (req, res) => {
-  const b = req.body || {}
-  const max = await SuccessStory.findOne().sort({ story_id: -1 }).lean()
-  await SuccessStory.create({
-    story_id: Number(max?.story_id || 0) + 1,
-    ...b,
-    status: b.status || 'APPROVED',
-  })
-  res.json({ success: true, message: 'Story created' })
+router.post('/success-stories', optionalFile(storyUpload, 'weddingphoto'), async (req, res) => {
+  try {
+    const b = req.body || {}
+    const max = await SuccessStory.findOne().sort({ story_id: -1 }).lean()
+    const photo = req.file?.filename || b.weddingphoto || ''
+    await SuccessStory.create({
+      story_id: Number(max?.story_id || 0) + 1,
+      bridename: b.bridename || '',
+      brideid: b.brideid || '',
+      groomname: b.groomname || '',
+      groomid: b.groomid || '',
+      marriagedate: b.marriagedate || '',
+      engagement_date: b.engagement_date || '',
+      address: b.address || '',
+      country: b.country || '',
+      successmessage: b.successmessage || '',
+      weddingphoto: photo,
+      weddingphoto_type: photo ? pathExt(photo) : '',
+      status: b.status || 'APPROVED',
+    })
+    res.json({ success: true, message: 'Story created' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, message: err.message || 'Create failed' })
+  }
 })
+
+router.put('/success-stories/:id', optionalFile(storyUpload, 'weddingphoto'), async (req, res) => {
+  try {
+    const b = req.body || {}
+    const $set = {
+      bridename: b.bridename || '',
+      brideid: b.brideid || '',
+      groomname: b.groomname || '',
+      groomid: b.groomid || '',
+      marriagedate: b.marriagedate || '',
+      engagement_date: b.engagement_date || '',
+      address: b.address || '',
+      country: b.country || '',
+      successmessage: b.successmessage || '',
+      status: b.status || 'APPROVED',
+    }
+    if (req.file?.filename) {
+      $set.weddingphoto = req.file.filename
+      $set.weddingphoto_type = pathExt(req.file.filename)
+    } else if (b.weddingphoto) {
+      $set.weddingphoto = b.weddingphoto
+    }
+    await SuccessStory.updateOne({ story_id: Number(req.params.id) }, { $set })
+    res.json({ success: true, message: 'Story updated' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, message: err.message || 'Update failed' })
+  }
+})
+
+router.delete('/success-stories/:id', async (req, res) => {
+  await SuccessStory.deleteOne({ story_id: Number(req.params.id) })
+  res.json({ success: true, message: 'Deleted' })
+})
+
+router.get('/services', async (_req, res) => {
+  const services = await Service.find().sort({ sort_order: 1, service_id: 1 }).lean()
+  res.json({ success: true, services })
+})
+
+router.post('/services', optionalFile(serviceUpload, 'image'), async (req, res) => {
+  try {
+    const b = req.body || {}
+    const max = await Service.findOne().sort({ service_id: -1 }).lean()
+    const nextOrder =
+      b.sort_order !== undefined && b.sort_order !== ''
+        ? Number(b.sort_order)
+        : Number(max?.sort_order || 0) + 1
+    await Service.create({
+      service_id: Number(max?.service_id || 0) + 1,
+      title: b.title || '',
+      text: b.text || '',
+      image: req.file?.filename || b.image || '',
+      sort_order: nextOrder,
+      status: b.status || 'APPROVED',
+    })
+    res.json({ success: true, message: 'Service created' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, message: err.message || 'Create failed' })
+  }
+})
+
+router.put('/services/:id', optionalFile(serviceUpload, 'image'), async (req, res) => {
+  try {
+    const b = req.body || {}
+    const $set = {
+      title: b.title || '',
+      text: b.text || '',
+      sort_order: Number(b.sort_order || 0),
+      status: b.status || 'APPROVED',
+    }
+    if (req.file?.filename) $set.image = req.file.filename
+    else if (b.image != null) $set.image = b.image
+    await Service.updateOne({ service_id: Number(req.params.id) }, { $set })
+    res.json({ success: true, message: 'Service updated' })
+  } catch (err) {
+    console.error(err)
+    res.status(500).json({ success: false, message: err.message || 'Update failed' })
+  }
+})
+
+router.delete('/services/:id', async (req, res) => {
+  await Service.deleteOne({ service_id: Number(req.params.id) })
+  res.json({ success: true, message: 'Deleted' })
+})
+
+function pathExt(name) {
+  const i = String(name).lastIndexOf('.')
+  return i >= 0 ? String(name).slice(i + 1).toLowerCase() : ''
+}
 
 router.get('/email-templates', async (_req, res) => {
   const templates = await EmailTemplate.find().lean()
